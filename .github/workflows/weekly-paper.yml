@@ -1,12 +1,11 @@
-name: Weekly Research Paper Summary
+﻿name: Weekly Research Paper Summary
 
 on:
   schedule:
-    # Runs every Monday at 9:00 AM UTC (adjust time as needed)
-    # Format: minute hour day month weekday
+    # Runs every Monday at 9:00 AM UTC
     - cron: '0 9 * * 1'
   
-  workflow_dispatch:  # Allows manual trigger from GitHub UI
+  workflow_dispatch:  # Allows manual trigger
     inputs:
       topic:
         description: 'Research topic to search'
@@ -34,20 +33,17 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            tesseract-ocr \
-            poppler-utils \
-            --no-install-recommends
+          sudo apt-get install -y tesseract-ocr poppler-utils --no-install-recommends
           sudo rm -rf /var/lib/apt/lists/*
       
       - name: Install Python dependencies
         working-directory: ./services
         run: |
-          pip install --upgrade pip
+          python -m pip install --upgrade pip
           pip install --no-cache-dir -r requirements.txt
       
       - name: Verify PyMuPDF installation
-        run: python -c "import fitz; print(f'✅ PyMuPDF version: {fitz.__version__}')"
+        run: python -c "import fitz; print(f'PyMuPDF version: {fitz.__version__}')"
       
       - name: Run paper summarizer
         working-directory: ./services
@@ -58,21 +54,19 @@ jobs:
           SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
           SENDER_PASSWORD: ${{ secrets.SENDER_PASSWORD }}
           RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
-          TOPIC: ${{ github.event.inputs.topic || 'LLM' }}
-          MAX_PAPERS: ${{ github.event.inputs.max_papers || '1' }}
-        run: |
-          python pipeline.py
+          TOPIC: ${{ github.event.inputs.topic }}
+          MAX_PAPERS: ${{ github.event.inputs.max_papers }}
+        run: python pipeline.py
       
       - name: Upload PDF artifacts
-        uses: actions/upload-artifact@v4
         if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: research-papers-${{ github.run_number }}
-          path: services/data/*.pdf
+          path: ./services/data/*.pdf
           retention-days: 7
           if-no-files-found: ignore
       
       - name: Notify on failure
         if: failure()
-        run: |
-          echo "❌ Workflow failed! Check the logs above for details."
+        run: echo "Workflow failed! Check the logs above for details."
