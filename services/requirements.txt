@@ -1,0 +1,10 @@
+langchain
+requests
+fitz
+PyMuPDF
+langchain-google-genai
+pdf2image
+pytesseract
+python-dotenv
+schedule
+feedparser

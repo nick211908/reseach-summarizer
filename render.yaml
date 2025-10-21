@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: research-paper-summarizer
+    runtime: docker
+    repo: https://github.com/YOUR_USERNAME/research-paper-summarizer
+    region: oregon
+    plan: starter
+    branch: main
+    dockerfilePath: ./services/Dockerfile
+    envVars:
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: EMAIL_PASSWORD
+        sync: false
+      - key: EMAIL_ADDRESS
+        sync: false
