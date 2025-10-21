@@ -43,7 +43,7 @@ jobs:
           pip install --no-cache-dir -r requirements.txt
 
       - name: Verify PyMuPDF installation
-        run: python -c "import fitz; print(f'PyMuPDF version: {fitz.__version__}')"
+  run: python -c "import fitz; print('PyMuPDF version:', fitz.__version__)"
 
       - name: Run paper summarizer
         working-directory: ./services
