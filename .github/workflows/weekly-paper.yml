@@ -1,0 +1,78 @@
+name: Weekly Research Paper Summary
+
+on:
+  schedule:
+    # Runs every Monday at 9:00 AM UTC (adjust time as needed)
+    # Format: minute hour day month weekday
+    - cron: '0 9 * * 1'
+  
+  workflow_dispatch:  # Allows manual trigger from GitHub UI
+    inputs:
+      topic:
+        description: 'Research topic to search'
+        required: false
+        default: 'LLM'
+      max_papers:
+        description: 'Number of papers to fetch'
+        required: false
+        default: '1'
+
+jobs:
+  summarize-papers:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+      
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            tesseract-ocr \
+            poppler-utils \
+            --no-install-recommends
+          sudo rm -rf /var/lib/apt/lists/*
+      
+      - name: Install Python dependencies
+        working-directory: ./services
+        run: |
+          pip install --upgrade pip
+          pip install --no-cache-dir -r requirements.txt
+      
+      - name: Verify PyMuPDF installation
+        run: python -c "import fitz; print(f'✅ PyMuPDF version: {fitz.__version__}')"
+      
+      - name: Run paper summarizer
+        working-directory: ./services
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+          SENDER_PASSWORD: ${{ secrets.SENDER_PASSWORD }}
+          RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
+          TOPIC: ${{ github.event.inputs.topic || 'LLM' }}
+          MAX_PAPERS: ${{ github.event.inputs.max_papers || '1' }}
+        run: |
+          python pipeline.py
+      
+      - name: Upload PDF artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: research-papers-${{ github.run_number }}
+          path: services/data/*.pdf
+          retention-days: 7
+          if-no-files-found: ignore
+      
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Workflow failed! Check the logs above for details."
